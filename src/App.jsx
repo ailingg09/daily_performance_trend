@@ -150,7 +150,7 @@ export default function App() {
 
       <div className="summary-cards">
         <div className="summary-card">
-          <div className="label">Total Revenue</div>
+          <div className="label">Total Revenue (Gross)</div>
           <div className="value">{fmt(totalNormalRev + totalTripRev)}</div>
         </div>
         <div className="summary-card">
