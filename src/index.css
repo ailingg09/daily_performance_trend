@@ -13,14 +13,19 @@ body {
   max-width: 1100px;
   margin: 0 auto;
 }
-.chart-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+
+.chart-title   { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
 .chart-subtitle { font-size: 12px; color: #888; margin-bottom: 20px; }
+
+/* ── Summary cards ────────────────────────────────────────────────────────── */
 .summary-cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
 .summary-card { border: 1px solid #e8e8e8; border-radius: 8px; padding: 14px 18px; min-width: 180px; flex: 1; }
 .summary-card .label { font-size: 12px; color: #888; margin-bottom: 4px; }
 .summary-card .value { font-size: 20px; font-weight: 700; color: #1a1a1a; }
-.summary-card .sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+.summary-card .sub   { font-size: 11px; color: #bbb; margin-top: 2px; }
 .summary-card.loss .value { color: #e53e3e; }
+
+/* ── Tooltip ──────────────────────────────────────────────────────────────── */
 .tooltip-box {
   background: #fff;
   border: 1px solid #ddd;
@@ -30,8 +35,8 @@ body {
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   min-width: 220px;
 }
-.tooltip-date { font-weight: 700; font-size: 14px; margin-bottom: 8px; color: #1a1a1a; }
-.tooltip-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
+.tooltip-date    { font-weight: 700; font-size: 14px; margin-bottom: 8px; color: #1a1a1a; }
+.tooltip-row     { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
 .tooltip-divider { border: none; border-top: 1px solid #eee; margin: 8px 0; }
 .tooltip-total { font-weight: 700; }
-.tooltip-loss { color: #e53e3e; font-weight: 700; }
+.tooltip-loss  { color: #e53e3e; font-weight: 700; }

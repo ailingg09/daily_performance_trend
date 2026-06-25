@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
+  Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
 
 // ── Data generation ───────────────────────────────────────────────────────────
@@ -18,14 +18,14 @@ function generateData() {
     let tripRev = 0, tripLoss = 0, tripConv = 0
 
     if (isTripOff) {
-      const scale = i === 18 ? 10 : i === 17 || i === 19 ? 6 : i === 20 ? 4 : 3
-      tripRev  = Math.round(20000 * scale + Math.random() * 5000)
-      tripLoss = Math.round(tripRev * (0.03 + Math.random() * 0.04))
-      tripConv = Math.round(800 * scale + Math.random() * 200)
+      const scale = i === 18 ? 3 : i === 17 || i === 19 ? 2 : i === 20 ? 1.5 : 1.2
+      tripRev  = Math.round(25000 * scale + Math.random() * 5000)
+      tripLoss = Math.round(tripRev * (0.08 + Math.random() * 0.06))
+      tripConv = Math.round(900 * scale + Math.random() * 200)
     } else {
-      normalRev  = Math.round(25000 + Math.random() * 30000)
+      normalRev  = Math.round(25000 + Math.random() * 20000)
       normalLoss = Math.round(normalRev * (0.03 + Math.random() * 0.04))
-      normalConv = Math.round(300 + Math.random() * 200)
+      normalConv = Math.round(400 + Math.random() * 200)
     }
 
     rows.push({ date: label, normalRev, normalLoss, normalConv, tripRev, tripLoss, tripConv })
@@ -34,6 +34,13 @@ function generateData() {
 }
 
 const data = generateData()
+
+// Refunds as negative values so they render below the zero line
+const chartData = data.map(d => ({
+  ...d,
+  normalLossNeg: -d.normalLoss,
+  tripLossNeg:   -d.tripLoss,
+}))
 
 const totalNormalRev = data.reduce((s, d) => s + d.normalRev, 0)
 const totalTripRev   = data.reduce((s, d) => s + d.tripRev, 0)
@@ -49,48 +56,53 @@ function fmt(n) {
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null
 
-  const get = (key) => {
-    const p = payload.find(x => x.dataKey === key)
-    return p ? p.value : 0
-  }
+  const get = key => payload.find(x => x.dataKey === key)?.value ?? 0
 
-  const normalRev  = get('normalRev')
-  const normalLoss = get('normalLoss')
-  const tripRev    = get('tripRev')
-  const tripLoss   = get('tripLoss')
-  const normalConv = get('normalConv')
-  const tripConv   = get('tripConv')
-  const totalRev   = normalRev + tripRev
-  const totalConv  = normalConv + tripConv
-  const totalL     = normalLoss + tripLoss
+  const normalRev   = get('normalRev')
+  const tripRev     = get('tripRev')
+  const normalLoss  = -get('normalLossNeg')
+  const tripLoss    = -get('tripLossNeg')
+  const normalConv  = get('normalConv')
+  const tripConv    = get('tripConv')
+  const totalRev    = normalRev + tripRev
+  const totalRefund = normalLoss + tripLoss
 
   return (
     <div className="tooltip-box">
       <div className="tooltip-date">{label}</div>
 
-      <div className="tooltip-row" style={{ color: '#60a5fa' }}>
-        <span>Normal Revenue:</span><span>{fmt(normalRev)}</span>
+      <div className="tooltip-row" style={{ color: '#3b82f6' }}>
+        <span>Normal Revenue</span><span>{fmt(normalRev)}</span>
       </div>
-      <div className="tooltip-row" style={{ color: '#60a5fa' }}>
-        <span>Normal Conversions:</span><span>{normalConv}</span>
+      <div className="tooltip-row" style={{ color: '#8b5cf6' }}>
+        <span>Trip-off Revenue</span><span>{fmt(tripRev)}</span>
       </div>
-
-      <div className="tooltip-row" style={{ color: '#a78bfa' }}>
-        <span>Trip-off Revenue:</span><span>{fmt(tripRev)}</span>
-      </div>
-      <div className="tooltip-row" style={{ color: '#a78bfa' }}>
-        <span>Trip-off Conversions:</span><span>{tripConv}</span>
+      <div className="tooltip-row tooltip-total">
+        <span>Total Revenue (Gross)</span><span>{fmt(totalRev)}</span>
       </div>
 
       <hr className="tooltip-divider" />
-      <div className="tooltip-row tooltip-total">
-        <span>Total Revenue:</span><span>{fmt(totalRev)}</span>
+
+      <div className="tooltip-row" style={{ color: '#e53e3e' }}>
+        <span>Normal Refund</span><span>−{fmt(normalLoss)}</span>
       </div>
-      <div className="tooltip-row tooltip-total">
-        <span>Total Conversions:</span><span>{totalConv}</span>
+      <div className="tooltip-row" style={{ color: '#e53e3e' }}>
+        <span>Trip-off Refund</span><span>−{fmt(tripLoss)}</span>
       </div>
       <div className="tooltip-row tooltip-total tooltip-loss">
-        <span>Total Loss:</span><span>-{fmt(totalL)}</span>
+        <span>Total Refund</span><span>−{fmt(totalRefund)}</span>
+      </div>
+
+      <hr className="tooltip-divider" />
+
+      <div className="tooltip-row" style={{ color: '#3b82f6' }}>
+        <span>Normal Conversions</span><span>{normalConv.toLocaleString()}</span>
+      </div>
+      <div className="tooltip-row" style={{ color: '#8b5cf6' }}>
+        <span>Trip-off Conversions</span><span>{tripConv.toLocaleString()}</span>
+      </div>
+      <div className="tooltip-row tooltip-total">
+        <span>Total Conversions</span><span>{(normalConv + tripConv).toLocaleString()}</span>
       </div>
     </div>
   )
@@ -98,18 +110,30 @@ function CustomTooltip({ active, payload, label }) {
 
 // ── Legend ────────────────────────────────────────────────────────────────────
 function CustomLegend() {
-  const items = [
-    { color: '#93c5fd', label: 'Normal Revenue (¥)' },
-    { color: '#c4b5fd', label: 'Trip-off Revenue (¥)' },
-    { color: '#e53e3e', label: 'Total Loss (¥)' },
-    { color: '#1e3a5f', label: 'Normal Conversions' },
-    { color: '#7c3aed', label: 'Trip-off Conversions' },
+  const bars = [
+    { color: '#93c5fd', label: 'Normal Revenue' },
+    { color: '#c4b5fd', label: 'Trip-off Revenue' },
+    { color: '#fca5a5', label: 'Normal Refund' },
+    { color: '#f87171', label: 'Trip-off Refund' },
+  ]
+  const lines = [
+    { color: '#3b82f6', label: 'Normal Conversions',   dashed: false },
+    { color: '#8b5cf6', label: 'Trip-off Conversions', dashed: true  },
   ]
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', marginTop: '8px', fontSize: '12px', color: '#555' }}>
-      {items.map(({ color, label }) => (
-        <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, display: 'inline-block' }} />
+    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '10px', fontSize: '12px' }}>
+      {bars.map(({ color, label }) => (
+        <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#555' }}>
+          <span style={{ width: 11, height: 11, background: color, borderRadius: 2, flexShrink: 0 }} />
+          {label}
+        </span>
+      ))}
+      {lines.map(({ color, label, dashed }) => (
+        <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#555' }}>
+          <svg width="22" height="10" viewBox="0 0 22 10" style={{ flexShrink: 0 }}>
+            <line x1="0" y1="5" x2="22" y2="5" stroke={color} strokeWidth="1.8"
+              strokeDasharray={dashed ? '4 2' : undefined} strokeLinecap="round" />
+          </svg>
           {label}
         </span>
       ))}
@@ -134,7 +158,7 @@ export default function App() {
           <div className="value">{fmt(avgDailyRev)}</div>
         </div>
         <div className="summary-card loss">
-          <div className="label">Total Loss (Total Refund)</div>
+          <div className="label">Total Refund</div>
           <div className="value">-{fmt(totalLoss)}</div>
         </div>
         <div className="summary-card">
@@ -143,9 +167,12 @@ export default function App() {
         </div>
       </div>
 
+      <CustomLegend />
       <ResponsiveContainer width="100%" height={380}>
-        <ComposedChart data={data} margin={{ top: 10, right: 60, left: 10, bottom: 0 }} barGap={0} barCategoryGap="0%">
+        <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }} barGap={0} barCategoryGap="15%">
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+          <ReferenceLine yAxisId="rev" y={0} stroke="#d1d5db" strokeWidth={1} />
+
           <XAxis
             dataKey="date"
             tick={{ fontSize: 10, fill: '#999' }}
@@ -160,29 +187,34 @@ export default function App() {
             orientation="left"
             tick={{ fontSize: 10, fill: '#999' }}
             tickFormatter={v => v === 0 ? '0' : (v / 1000) + 'k'}
+            axisLine={false}
+            tickLine={false}
             label={{ value: 'Revenue (¥)', angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 11, fill: '#aaa' } }}
           />
           <YAxis
             yAxisId="conv"
             orientation="right"
             tick={{ fontSize: 10, fill: '#999' }}
+            axisLine={false}
+            tickLine={false}
             label={{ value: 'Conversions', angle: 90, position: 'insideRight', offset: 10, style: { fontSize: 11, fill: '#aaa' } }}
           />
 
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
 
-          <Bar yAxisId="rev" dataKey="normalRev"  stackId="normal"  fill="#93c5fd" name="Normal Revenue (¥)" />
-          <Bar yAxisId="rev" dataKey="normalLoss" stackId="normal"  fill="#e53e3e" name="Normal Loss (¥)" />
+          {/* Revenue bars — stacked upward */}
+          <Bar yAxisId="rev" dataKey="normalRev"     stackId="rev"  fill="#93c5fd" name="Normal Revenue" />
+          <Bar yAxisId="rev" dataKey="tripRev"       stackId="rev"  fill="#c4b5fd" name="Trip-off Revenue" />
 
-          <Bar yAxisId="rev" dataKey="tripRev"    stackId="tripoff" fill="#c4b5fd" name="Trip-off Revenue (¥)" />
-          <Bar yAxisId="rev" dataKey="tripLoss"   stackId="tripoff" fill="#e53e3e" name="Trip-off Loss (¥)" />
+          {/* Refund bars — stacked downward (negative values) */}
+          <Bar yAxisId="rev" dataKey="normalLossNeg" stackId="loss" fill="#fca5a5" name="Normal Refund" />
+          <Bar yAxisId="rev" dataKey="tripLossNeg"   stackId="loss" fill="#f87171" name="Trip-off Refund" />
 
-          <Line yAxisId="conv" type="monotone" dataKey="normalConv" stroke="#1e3a5f" strokeWidth={2} dot={false} name="Normal Conversions" />
-          <Line yAxisId="conv" type="monotone" dataKey="tripConv"   stroke="#7c3aed" strokeWidth={2} dot={false} name="Trip-off Conversions" />
+          {/* Conversion lines */}
+          <Line yAxisId="conv" type="monotone" dataKey="normalConv" stroke="#3b82f6" strokeWidth={1.5} dot={false} name="Normal Conversions" />
+          <Line yAxisId="conv" type="monotone" dataKey="tripConv"   stroke="#8b5cf6" strokeWidth={1.5} dot={false} strokeDasharray="4 2" name="Trip-off Conversions" />
         </ComposedChart>
       </ResponsiveContainer>
-
-      <CustomLegend />
     </div>
   )
 }
