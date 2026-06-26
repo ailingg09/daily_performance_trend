@@ -48,6 +48,12 @@ const totalLoss      = data.reduce((s, d) => s + d.normalLoss + d.tripLoss, 0)
 const avgDailyRev    = Math.round((totalNormalRev + totalTripRev) / data.length)
 const totalConversions = data.reduce((s, d) => s + d.normalConv + d.tripConv, 0)
 
+// Aligned zero: y1Min forces the right axis 0 to the same pixel height as the left axis 0
+const yMax  = Math.ceil(Math.max(...data.map(d => d.normalRev + d.tripRev)) * 1.1 / 10000) * 10000
+const yMin  = -Math.ceil(Math.max(...data.map(d => d.normalLoss + d.tripLoss)) * 1.6 / 1000) * 1000
+const y1Max = Math.ceil(Math.max(...data.map(d => d.normalConv + d.tripConv)) * 1.1 / 100) * 100
+const y1Min = Math.round(y1Max * yMin / yMax)
+
 function fmt(n) {
   return '¥' + n.toLocaleString()
 }
@@ -141,6 +147,18 @@ function CustomLegend() {
   )
 }
 
+// ── Zero label on both sides of the baseline ─────────────────────────────────
+function ZeroLabel({ viewBox }) {
+  const { x, y, width } = viewBox
+  const style = { fontSize: 10, fill: 'rgba(100,100,100,0.85)', fontWeight: 700 }
+  return (
+    <>
+      <text x={x - 4} y={y + 4} textAnchor="end" {...style}>0</text>
+      <text x={x + width + 4} y={y + 4} textAnchor="start" {...style}>0</text>
+    </>
+  )
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
@@ -171,7 +189,7 @@ export default function App() {
       <ResponsiveContainer width="100%" height={380}>
         <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }} barGap={0} barCategoryGap="15%">
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-          <ReferenceLine yAxisId="rev" y={0} stroke="#d1d5db" strokeWidth={1} />
+          <ReferenceLine yAxisId="rev" y={0} stroke="rgba(136,135,128,0.55)" strokeWidth={1.5} label={<ZeroLabel />} />
 
           <XAxis
             dataKey="date"
@@ -185,6 +203,7 @@ export default function App() {
           <YAxis
             yAxisId="rev"
             orientation="left"
+            domain={[yMin, yMax]}
             tick={{ fontSize: 10, fill: '#999' }}
             tickFormatter={v => v === 0 ? '0' : (v / 1000) + 'k'}
             axisLine={false}
@@ -194,7 +213,9 @@ export default function App() {
           <YAxis
             yAxisId="conv"
             orientation="right"
+            domain={[y1Min, y1Max]}
             tick={{ fontSize: 10, fill: '#999' }}
+            tickFormatter={v => v < 0 ? '' : v.toLocaleString()}
             axisLine={false}
             tickLine={false}
             label={{ value: 'Conversions', angle: 90, position: 'insideRight', offset: 10, style: { fontSize: 11, fill: '#aaa' } }}
